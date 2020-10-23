@@ -1,12 +1,15 @@
 package poker
 
 import (
+	"fmt"
 	"io"
 	"net/http/httptest"
 	"reflect"
 	"testing"
+	"time"
 )
 
+// Stub for PlayerStore
 type StubPlayerStore struct {
 	scores   map[string]int
 	winCalls []string
@@ -70,4 +73,41 @@ func AssertContentType(t *testing.T, response *httptest.ResponseRecorder, want s
 	if response.Result().Header.Get("content-type") != "application/json" {
 		t.Errorf("response did not have content-type of application/json, got %v", response.Result().Header)
 	}
+}
+
+// Spy on BlindAlerter
+type SpyBlindAlerter struct {
+	Alerts []ScheduledAlert
+}
+
+type ScheduledAlert struct {
+	At     time.Duration
+	Amount int
+}
+
+func (s ScheduledAlert) String() string {
+	return fmt.Sprintf("%d chips at %v", s.Amount, s.At)
+}
+
+func (s *SpyBlindAlerter) ScheduleAlertAt(at time.Duration, amount int) {
+	s.Alerts = append(s.Alerts, ScheduledAlert{at, amount})
+}
+
+// Spy on Game
+type GameSpy struct {
+	StartCalled     bool
+	StartCalledWith int
+
+	FinishedCalled   bool
+	FinishCalledWith string
+}
+
+func (g *GameSpy) Start(numberOfPlayers int) {
+	g.StartCalled = true
+	g.StartCalledWith = numberOfPlayers
+}
+
+func (g *GameSpy) Finish(winner string) {
+	g.FinishedCalled = true
+	g.FinishCalledWith = winner
 }
